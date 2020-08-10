@@ -45,6 +45,10 @@ To keep everything working, do not remove `<!-- ... -->` sections.
 <!-- Plugin description end -->
 
 
+## Simliar project
+
+ - [JUnit to Spock Converter](https://github.com/masooh/intellij-junit-to-spock-converter) JUnit to Spock Converter IntelliJ Plugin: Converts JUnit to Spock.
+
 ---
 Plugin based on the [IntelliJ Platform Plugin Template][template].
 
