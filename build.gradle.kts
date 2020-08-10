@@ -37,9 +37,26 @@ repositories {
     mavenCentral()
     jcenter()
 }
-//dependencies {
-//    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.10.0")
-//}
+
+dependencies {
+    implementation(kotlin("test"))
+    implementation(kotlin("test-junit"))
+
+    // JUnit 5
+    testImplementation("org.mockito:mockito-core:3.4.6")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.4.2")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-console:1.6.0")
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
+}
 
 // Configure gradle-intellij-plugin plugin.
 // Read more: https://github.com/JetBrains/gradle-intellij-plugin
