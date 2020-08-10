@@ -53,3 +53,38 @@ To keep everything working, do not remove `<!-- ... -->` sections.
 Plugin based on the [IntelliJ Platform Plugin Template][template].
 
 [template]: https://github.com/JetBrains/intellij-platform-plugin-template
+
+## Documents
+
+Groovy Code
+
+```groovy
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+```
+
+Tree logs:
+
+```bash
+0 = {GrMethodCallExpressionImpl@37378} "Method call"
+1 = {LeafPsiElement@37379} "PsiElement(new line)"
+2 = {GrApplicationStatementImpl@37380} "Call expression"
+3 = {LeafPsiElement@37381} "PsiElement(new line)"
+4 = {GrApplicationStatementImpl@37382} "Call expression"
+5 = {LeafPsiElement@37383} "PsiElement(new line)"
+6 = {GrMethodCallExpressionImpl@37384} "Method call"
+7 = {LeafPsiElement@32963} "PsiElement(new line)"
+8 = {GrMethodCallExpressionImpl@32962} "Method call"
+```
