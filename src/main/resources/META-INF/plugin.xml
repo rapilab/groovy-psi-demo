@@ -16,4 +16,12 @@
         <listener class="com.github.phodal.groovypsidemo.listeners.MyProjectManagerListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
     </projectListeners>
+
+    <actions>
+        <action id="Gradle.Get"
+                class="com.github.phodal.groovypsidemo.action.PsiMerge"
+                text="psi merge" description="Merge PSI">
+            <add-to-group group-id="ToolsMenu" anchor="first"/>
+        </action>
+    </actions>
 </idea-plugin>
