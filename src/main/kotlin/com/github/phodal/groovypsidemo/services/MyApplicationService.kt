@@ -1,6 +1,6 @@
-package org.jetbrains.plugins.template.services
+package com.github.phodal.groovypsidemo.services
 
-import org.jetbrains.plugins.template.MyBundle
+import com.github.phodal.groovypsidemo.MyBundle
 
 class MyApplicationService {
 
