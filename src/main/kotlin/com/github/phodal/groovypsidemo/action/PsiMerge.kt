@@ -21,6 +21,7 @@ import org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrRefere
 import org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.literals.GrLiteral
 import java.io.File
 import java.util.*
+import java.util.function.Function
 
 class PsiMerge : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
@@ -59,7 +60,6 @@ class PsiMerge : AnAction() {
 
         }
 
-
         // Load existing dependencies into a map for the existing build.gradle
         val originalDependencies: MutableMap<String, Multimap<String, GradleCoordinate>> = Maps.newHashMap()
         val psiGradleCoordinate: MutableMap<GradleCoordinate, PsiElement> = Maps.newHashMap()
@@ -69,6 +69,7 @@ class PsiMerge : AnAction() {
 
         println(psiGradleCoordinate)
         println(originalDependencies)
+        println(originalUnparsedDependencies)
     }
 
 
@@ -90,15 +91,14 @@ class PsiMerge : AnAction() {
                         if (expressionArguments.size == 1 && expressionArguments[0] is GrLiteral) {
                             val value = (expressionArguments[0] as GrLiteral).value
                             if (value is String) {
-                                val coordinate: GradleCoordinate? = GradleCoordinate.parseCoordinateString(value)
-                                parsed = true
-                                val map = allConfigurations.computeIfAbsent(configurationName) { k: String? ->
-                                    LinkedListMultimap.create()
-                                }
-                                if (!map.isEmpty) {
+                                val coordinate = GradleCoordinate.parseCoordinateString(value)
+                                if (coordinate != null) {
+                                    parsed = true
+                                    val map = allConfigurations.computeIfAbsent(configurationName) { 
+                                        k: String? -> LinkedListMultimap.create()
+                                    }
 
-                                    val mutableCollection = map[coordinate!!.getId()]
-                                    if (!mutableCollection.contains(coordinate)) {
+                                    if (!map[coordinate.getId()].contains(coordinate)) {
                                         map.put(coordinate.getId(), coordinate)
                                         psiGradleCoordinate[coordinate] = reference
                                     }
