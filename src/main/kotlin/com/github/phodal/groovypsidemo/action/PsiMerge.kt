@@ -21,7 +21,6 @@ import org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrRefere
 import org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.literals.GrLiteral
 import java.io.File
 import java.util.*
-import java.util.function.Function
 
 class PsiMerge : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
@@ -54,11 +53,34 @@ class PsiMerge : AnAction() {
         }
     }
 
+    private val KNOWN_CONFIGURATIONS_IN_ORDER = listOf(
+            "feature", "api", "implementation", "compile",
+            "testApi", "testImplementation", "testCompile",
+            "androidTestApi", "androidTestImplementation", "androidTestCompile", "androidTestUtil")
+
+    private val CONFIGURATION_GROUPS = setOf(
+            setOf("feature", "api", "implementation", "compile"),
+            setOf("testApi", "testImplementation", "testCompile"),
+            setOf("androidTestApi", "androidTestImplementation", "androidTestCompile"))
+
+    /**
+     * Defined an ordering on gradle configuration names.
+     */
+    @JvmField
+    val CONFIGURATION_ORDERING = compareBy<String> {
+        val result = KNOWN_CONFIGURATIONS_IN_ORDER.indexOf(it)
+        if (result != -1) result else KNOWN_CONFIGURATIONS_IN_ORDER.size
+    }.thenBy { it }
+
+
     private fun mergePsi(fromRoot: PsiElement, toRoot: PsiElement, project: Project?, nothing: Nothing?) {
         val destinationChildren: Set<PsiElement> = HashSet(Arrays.asList(*toRoot.children))
         for (destinationChild in destinationChildren) {
 
         }
+
+        val dependencies: MutableMap<String, Multimap<String, GradleCoordinate>> = TreeMap(CONFIGURATION_ORDERING)
+        val unparsedDependencies: MutableList<String> = ArrayList()
 
         // Load existing dependencies into a map for the existing build.gradle
         val originalDependencies: MutableMap<String, Multimap<String, GradleCoordinate>> = Maps.newHashMap()
@@ -66,17 +88,53 @@ class PsiMerge : AnAction() {
         val originalUnparsedDependencies: MutableList<String> = ArrayList()
 
         pullDependenciesIntoMap(fromRoot, originalDependencies, originalUnparsedDependencies, psiGradleCoordinate)
+        val factory = GroovyPsiElementFactory.getInstance(project!!)
 
-        println(psiGradleCoordinate)
-        println(originalDependencies)
-        println(originalUnparsedDependencies)
+        // Load dependencies into a map for the new build.gradle
+        pullDependenciesIntoMap(fromRoot, dependencies, unparsedDependencies, null)
+
+        // filter out dependencies already met by existing build.gradle
+        updateExistingDependencies(dependencies, originalDependencies, psiGradleCoordinate, factory)
+
+        println(dependencies)
+        println(unparsedDependencies)
     }
+
+    /**
+     * Removes entries from `newDependencies` that are also in `existingDependencies`.
+     * If `psiGradleCoordinates` and `factory` are supplied, it also increases the visibility of
+     * `existingDependencies` if needed, for example from "implementation" to "api".
+     */
+    fun updateExistingDependencies(
+            newDependencies: Map<String, Multimap<String, GradleCoordinate>>,
+            existingDependencies: Map<String, Multimap<String, GradleCoordinate>>,
+            psiGradleCoordinates: Map<GradleCoordinate, PsiElement>?,
+            factory: GroovyPsiElementFactory?
+    ) {
+        for (configuration in newDependencies.keys) {
+            // If we already have an existing "compile" dependency, the same "implementation" or "api" dependency should not be added
+            getConfigurationGroup(configuration).filter { existingDependencies.containsKey(it) }.forEach { possibleConfiguration ->
+                for ((coordinateId, value) in existingDependencies.getValue(possibleConfiguration).entries()) {
+                    newDependencies.getValue(configuration).removeAll(coordinateId)
+
+                    // Check if we need to convert the existing configuration. eg from "implementation" to "api", but not the other way around.
+                    if (psiGradleCoordinates != null && factory != null &&
+                            CONFIGURATION_ORDERING.compare(configuration, possibleConfiguration) < 0) {
+                        psiGradleCoordinates.getValue(value).replace(factory.createExpressionFromText(configuration))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun getConfigurationGroup(configuration: String) =
+            CONFIGURATION_GROUPS.firstOrNull { it.contains(configuration) } ?: setOf(configuration)
 
 
     private fun pullDependenciesIntoMap(root: PsiElement,
                                         allConfigurations: MutableMap<String, Multimap<String, GradleCoordinate>>,
                                         unparsedDependencies: MutableList<String>,
-                                        psiGradleCoordinate: MutableMap<GradleCoordinate, PsiElement>) {
+                                        psiGradleCoordinate: MutableMap<GradleCoordinate, PsiElement>?) {
         for (existingElem in root.children) {
             if (existingElem is GrCall) {
                 val reference = existingElem.getFirstChild()
@@ -94,13 +152,13 @@ class PsiMerge : AnAction() {
                                 val coordinate = GradleCoordinate.parseCoordinateString(value)
                                 if (coordinate != null) {
                                     parsed = true
-                                    val map = allConfigurations.computeIfAbsent(configurationName) { 
-                                        k: String? -> LinkedListMultimap.create()
+                                    val map = allConfigurations.computeIfAbsent(configurationName) { k: String? ->
+                                        LinkedListMultimap.create()
                                     }
 
                                     if (!map[coordinate.getId()].contains(coordinate)) {
                                         map.put(coordinate.getId(), coordinate)
-                                        psiGradleCoordinate[coordinate] = reference
+                                        psiGradleCoordinate!![coordinate] = reference
                                     }
                                 }
                             }
