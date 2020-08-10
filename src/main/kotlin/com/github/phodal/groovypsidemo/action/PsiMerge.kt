@@ -79,6 +79,10 @@ class PsiMerge : AnAction() {
 
         }
 
+        mergeDependencies(fromRoot, project)
+    }
+
+    private fun mergeDependencies(fromRoot: PsiElement, project: Project?) {
         val dependencies: MutableMap<String, Multimap<String, GradleCoordinate>> = TreeMap(CONFIGURATION_ORDERING)
         val unparsedDependencies: MutableList<String> = ArrayList()
 
